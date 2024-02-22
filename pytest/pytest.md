@@ -94,18 +94,19 @@ def test_add_2(task):
 
 Arrange-Act-Assert模式（或者称为 Given-When-Then模式）  
 将测试方法分为三个阶段：
-  - getting ready to do something
-  - doing something
-  - checking to see if it worked
 
+- getting ready to do something
+- doing something
+- checking to see if it worked
 
 # pytest fixtures
 
 fixture是什么：
+
 - fixture是方法
 - pytest在测试方法运行之前或者之后运行的方法
 
-### 基本使用方法
+## 基本使用方法
 
 - 使用 pytest.fixture()装饰一个方法
 - 在测试方法的参数列表中传入fixture的方法名
@@ -163,7 +164,7 @@ def test_empty(cards_db):
 | scope="class" | run once per test class |
 | scope="module" | run once per module |
 | scope="package" | run once per package or test directory |
-| scope="session" | run once per session | 
+| scope="session" | run once per session |
 
 在 test module 中定义 fixture 时，seesion和package 作用范围和 module 表现一样，如果想要作用于其他 scope，需要在 conftest.py 中定义  
 
@@ -245,7 +246,6 @@ def db():
 
 使用 name 参数对fixture进行重命名  
 
-
 ```python
 @pytest.fixture(name="ultimate_answer")
 def ultimate_answer_fixture():
@@ -304,11 +304,117 @@ def test_disabled(capsys):
 
 可以 fake 应用程序的输出  
 
-
 # Parametrization 参数化
 
 三种方法
- - parametrizing functions
- - parametrizing fixtures
- - using a hook function called <i>pytest_generate_tests<i>
 
+- parametrizing functions
+- parametrizing fixtures
+- using a hook function called <i>pytest_generate_tests<i>
+
+## Parametrizing functions
+
+使用 @pytest.mark.parametrize() 装饰器  
+
+- () 内给出测试的参数，和参数的值
+- 测试的参数以双引号 "" 包围，多个参数之间使用逗号隔开
+- 参数的值以列表形式给出，以方括号 [] 包围，多个参数的一组取值以元组形式给出
+- 测试方式的参数列表中需要有 @pytest.mark.parametrize() 中给出的测试参数
+
+## Parametrizing fixtures
+
+把参数列表放在fixture中
+
+```python
+# 下面的request 和 request.param 是固定写法， request 是 pytest 内置的一个fixture
+@pytest.fixture(params=["done", "in prog", "todo"])
+def start_state(request):
+    return request.param
+
+
+def test_finish(cards_db, start_state):
+    c = Card("write a book", state=start_state)
+    index = cards_db.add_card(c)
+    cards_db.finish(index)
+    card = cards_db.get_card(index)
+    assert card.state == "done"
+```
+
+对于fixture传入多个参数
+
+```python
+data = [{'user': "anjing",
+         'pwd': "123456",},
+        {'user': "admin",
+         "pwd": "123"},
+        {'user':"test",
+         'pwd': '1234'}]
+
+
+@pytest.fixture(params=data)
+def login(request):
+    print('登录功能')
+    yield request.param
+    print('退出登录')
+
+class Test_01:
+    def test_01(self, login):
+        print('---用例01---')
+        print('登录的用户名：%s' % login['user'])
+        print('登录的密码：%s' % login['pwd'])
+
+    def test_02(self):
+        print('---用例02---')
+```
+
+通过和ids参数配合，可以让pytest输出可读性更强
+
+```python
+data = [{"start_summary": "write a book",
+         "start_state": "done"},
+        {"start_summary": "second edition",
+         "start_state": "in prog"},
+        {"start_summary": "create a course",
+         "start_state": "todo"},
+        ]
+
+data_mark = ["write a book & done",
+             "second edition & in prog",
+             "create a course & todo"]
+
+
+@pytest.fixture(params=data, ids=data_mark)
+def combined_start(request):
+    yield request.param
+
+
+def test_finish_combined(cards_db, combined_start):
+    c = Card(summary=combined_start["start_summary"],
+             state=combined_start["start_state"])
+    index = cards_db.add_card(c)
+    cards_db.finish(index)
+    card = cards_db.get_card(index)
+    assert card.state == "done"
+```
+
+## Parametrizing with pytest_generate_tests
+
+```python
+def pytest_generate_tests(metafunc):
+    # 这里是判断 start_state 和 start_summary 是否在测试方法使用的 fixture 中（是否在参数列表中）
+    # 如果是的话，就对这两个进行参数化
+    if "start_state" in metafunc.fixturenames and "start_summary" in metafunc.fixturenames:
+        metafunc.parametrize("start_summary, start_state",
+                             [("write a book", "done"),
+                              ("second edition", "in prog"),
+                              ("create a course", "todo")])
+
+
+def test_finish(cards_db, start_summary, start_state):
+    c = Card(summary=start_summary, state=start_state)
+    index = cards_db.add_card(c)
+    cards_db.finish(index)
+    card = cards_db.get_card(index)
+    assert card.state == "done"
+
+```
