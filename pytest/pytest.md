@@ -418,3 +418,143 @@ def test_finish(cards_db, start_summary, start_state):
     assert card.state == "done"
 
 ```
+
+# Markers
+
+marker 可以看成是对测试方法的一种标记，通过标记告诉 pytest 被标记的测试方法有特殊之处  
+
+- 自建 marker
+- 自定义 marker
+- 通过 marker 向 fixture 传递信息
+
+## builtin markers
+
+builtin markers 会改变测试运行的方式  
+
+| marker | func |
+| :--: | :--: |
+| @pytest.mark.filterwarnings(warning) | adds a warning filter to the given test |
+| @pytest.mark.skip(reason=None) | skips the test with an optional reason |
+| @pytest.mark.skipif(condition, ..., *, reason) | skips the test if any of the conditions are True |
+| @pytest.mark.xfail(condition, ..., *, reason, run=True, raises=None, strict=xfail_strict) | tells pytest that we expect the test to fail |
+| @pytest.mark.parametrize(argnames, argvalues, indirect, ids, scope) | calls a test function multiple times, passing in different arguments in turn |
+| @pytest.mark.usefixtures(fixturename1, fixturename2, ...) | marks tests as needing all the specified fixtures |
+
+## 使用自定义的marker选择测试用例
+
+- @pytest.mark.<cumstomMarker> 装饰用例
+- pytest -m <cumstomMarker> ......  筛选用例
+- 可以把 <cumstomMarker> 写入 pytest.ini 文件中
+
+```ini
+[pytest]
+markers = 
+    smoke: subset of tests
+    exception: check for expexted exceptions
+    ...
+```
+
+## 标记文件，类和参数化
+
+### 文件
+
+在文件中对 pytestmark 变量赋值，取值为 marker(s) 的列表
+当 pytest 在 module 中看到 pytestmark 属性时，就会把 marker(s) 应用到 module 中所有的测试用例上
+
+```python
+
+# 如对单个
+pytestmark = pytest.mark.finish
+
+# 对多个
+pytestmark = [pytest.mark.marker_one, pytest.mark.marker_two]
+```
+
+### 标记类
+
+直接在类名上添加 @pytest.mark.<mark_name>
+会将 marker 应用到类中所有的测试用例
+
+### 标记参数化
+
+```python
+​@pytest.mark.parametrize(
+    ​"start_state"​,
+    [
+        ​"todo"​,
+        pytest.param(​"in prog"​, marks=pytest.mark.smoke),
+        ​"done"​,
+    ],
+​)
+​​def​ ​test_finish_func​(cards_db, start_state):
+    i = cards_db.add_card(Card(​"foo"​, state=start_state))
+    cards_db.finish(i)
+    c = cards_db.get_card(i)
+    assert​ c.state == ​"done"
+```
+
+## 严格限定 marker: 使用 pytest 运行参数 addopts =--strict-markers
+
+```ini
+markers = 
+    smoke: subset of tests
+    exception: check for expexted exceptions
+    ...
+
+addopts =
+    --strict-markers
+```
+
+## marker 和 fixture 嵌套
+
+这里一个应用场景就是让自定义的 marker 可以接收参数
+然后被 mark 的测试用例在调用 fixture 可以根据 marker 中的参数进行操作，如在原本空的数据库中插入参数指定数量的条目
+
+```python
+
+# 这里的 marker 是 num_cards，需要在 pytest.ini 中进行声明
+# cards_db 是 fixture，会根据 marker 中的参数值在数据库中插入指定数量的条目
+
+
+@pytest.mark.num_cards(10)
+def test_ten_cards(cards_db):
+    assert cards_db.count() == 10
+
+
+# 需要在 cards_db 初始实现中加入对 marker 参数的处理逻辑
+
+@pytest.fixture(scope="function")
+def cards_db(session_cards_db, request, faker):
+    # 参数列表中需要加入 request 和 faker， faker 用来生成虚拟数据，通过 pip install Faker 安装
+    
+    db = session_cards_db
+    db.delete_all()
+
+    #########################################################################
+    # 以下为添加的处理 marker 参数的处理逻辑
+    #########################################################################
+    faker.seed_instance(101)    
+    
+    # request.node 表示 pytest 中的一个 test (理解是一个测试函数)
+    # get_cloest_marker() 当一个 test 被 num_cards 标记时会返回一个 Marker 对象
+    # 没有被标记则返回 None
+    # 由于 test 可以被多个 marker 标记，只返回最靠近 test 的
+    m = request.node.get_closest_marker("num_cards")
+
+    if m and len(m.args) > 0:
+        num_cards = m.args[0]
+        for _ in range(num_cards):
+            db.add_card(
+                Card(summary=faker.sentence(), owner=faker.first_name())
+            )
+
+    #########################################################################
+
+    return db
+```
+
+## 查看所有的Makers
+
+```cmd
+pytest --markers
+```
