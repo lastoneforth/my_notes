@@ -3,11 +3,20 @@
 py -m ensurepip --upgrade
 ```
 
-# 测试函数
+# 2 测试函数
 
-## assert 判断
+## 2.1 assert 判断
 
-## pytest.fail()
+使用 assert < expression > 进行判断，其中 expression 结果为 bool
+
+## 2.2 pytest.fail()
+
+测试用例遇到任何 uncatched exception 时都会 fail  
+有三种情况：
+
+- assert 表达式 fail，此时会触发 AssertError exception
+- 测试代码中调用了 pytest.fail()
+- raise 的其他 exception
 
 ```python
 def test_with_fail():
@@ -17,7 +26,7 @@ def test_with_fail():
         pytest.fail("they don't match")
 ```
 
-## pytest.raises()
+## 2.3 pytest.raises()
 
 用于应对预期会触发异常的测试  
 
@@ -34,28 +43,7 @@ def test_no_path_raises():
 
 ```
 
-## 内置mark
-
-```python
-@pytest.mark.skip(reason="misunderstood the api)
-
-
-@pytest.mark.skipif(
-    tasks.__version__ < "0.2.0">
-    reason="not supported unitl version 0.2.0"
-)
-
-@pytest.mark.xfail(
-    tasks.__version__ < "0.2.0">
-    reason="not supported unitl version 0.2.0"
-)
-
-// 对于xfail标记的用例，预期结果是失败
-// 如果实际用例执行失败了，显示小写 x
-// 如果实际用例执行成功了，显示大写 X
-```
-
-## 运行测试子集
+## 2.4 运行测试子集
 
 | 测试子集 | 方法 |
 | :--: | :--: |
@@ -72,7 +60,7 @@ pytest -v -k "_raises and not delete"
 // 选取方法名中包含 _raises 但是不包含 delete 的方法执行
 ```
 
-## 参数化测试
+## 2.5 参数化测试
 
 使用 @pytest.mark.parametrize(argnames, argvalues) 给测试方法批量传输数据  
 
@@ -90,7 +78,7 @@ def test_add_2(task):
     assert equivalent(t_from_db, task)
 ```
 
-## 测试方法的结构
+## 2.6 测试方法的结构
 
 Arrange-Act-Assert模式（或者称为 Given-When-Then模式）  
 将测试方法分为三个阶段：
@@ -99,14 +87,14 @@ Arrange-Act-Assert模式（或者称为 Given-When-Then模式）
 - doing something
 - checking to see if it worked
 
-# pytest fixtures
+# 3 pytest fixtures
 
 fixture是什么：
 
 - fixture是方法
 - pytest在测试方法运行之前或者之后运行的方法
 
-## 基本使用方法
+## 3.1 基本使用方法
 
 - 使用 pytest.fixture()装饰一个方法
 - 在测试方法的参数列表中传入fixture的方法名
@@ -128,7 +116,7 @@ def test_some_data(some_data):
 测试方法过程中出现exception时，结果会显示 FAIL  
 fixture过程中出现exception时，结果会显示 Error  
 
-### yield
+### 3.1.1 yield
 
 fixture中yield之前的部分会在测试函数之前运行，yield之后的部分会在测试函数之后运行
 
@@ -152,11 +140,11 @@ def test_empty(cards_db):
     assert cards_db.count() == 0
 ```
 
-### pytest  --setup-show参数
+### 3.1.2 pytest  --setup-show参数
 
 运行时加上 --setup-show 参数，可以看到test function和fixture的运行顺序  
 
-### fixture scope 设置
+### 3.1.3 fixture scope 设置
 
 | scope参数设置 | 作用范围 |
 | :--: | :--: |
@@ -168,7 +156,7 @@ def test_empty(cards_db):
 
 在 test module 中定义 fixture 时，seesion和package 作用范围和 module 表现一样，如果想要作用于其他 scope，需要在 conftest.py 中定义  
 
-### 通过 conftest.py 共享 fixture
+### 3.1.4 通过 conftest.py 共享 fixture
 
 - 创建 conftest.py
 - 在 conftest.py 中定义 fixture
@@ -176,12 +164,12 @@ def test_empty(cards_db):
 
 pytest 会自动读取 conftest.py 文件，不需要在其他文件中 import conftest  
 
-### 查看 fixture 定义位置
+### 3.1.5 查看 fixture 定义位置
 
 - pytest --fixtures <test_range>
 - pytest --fixtures-per-test <test_range>
 
-### fixture 的嵌套
+### 3.1.6 fixture 的嵌套
 
 fixture 的方法的参数列表中可以使用其他 fixture ，
 这里其他的fixture的作用范围不能低于当前的fixture  
@@ -204,7 +192,7 @@ def cards_db(db):
     return db
 ```
 
-### 动态决定 fixture 的 scope 
+### 3.1.7 动态决定 fixture 的 scope
 
 ```python
 def db_scope(fixture_name, config):
@@ -235,14 +223,14 @@ def db():
         db_.close()
 ```
 
-### autouse 参数
+### 3.1.8 autouse 参数
 
 ```python
 # autouse=True 该fixture会自动应用到测试中
 @pytest.fixture(autouse=True)
 ```
 
-### fixture 重命名
+### 3.1.9 fixture 重命名
 
 使用 name 参数对fixture进行重命名  
 
@@ -255,9 +243,9 @@ def test_everything(ultimate_answer):
     assert ultimate_answer==42
 ```
 
-# 内置 fixtures
+# 4 内置 fixtures
 
-## tmp_path 和 tmp_path_factory  
+## 4.1 tmp_path 和 tmp_path_factory  
 
 - tmp_path : function-scope , 返回一个 pathlib.Path 实例，该实例指向一个临时目录
 - tmp_path_factory : session-scope ， 返回一个 TempPathFactory 对象，通过调用 mktemp() 方法返回一个 Path 对象  
@@ -276,7 +264,7 @@ def test_tmp_path_factory(tmp_path_factory):
     assert file.read_text() == "Hello"
 ```
 
-## capsys
+## 4.2 capsys
 
 用于捕获输出到 stdout， stderr 的内容  
 
@@ -300,11 +288,11 @@ def test_disabled(capsys):
         print("\ncapsys disabled print")
 ```
 
-## monkeypatch
+## 4.3 monkeypatch
 
 可以 fake 应用程序的输出  
 
-# Parametrization 参数化
+# 5 Parametrization 参数化
 
 三种方法
 
@@ -312,7 +300,7 @@ def test_disabled(capsys):
 - parametrizing fixtures
 - using a hook function called <i>pytest_generate_tests<i>
 
-## Parametrizing functions
+## 5.1 Parametrizing functions
 
 使用 @pytest.mark.parametrize() 装饰器  
 
@@ -321,7 +309,7 @@ def test_disabled(capsys):
 - 参数的值以列表形式给出，以方括号 [] 包围，多个参数的一组取值以元组形式给出
 - 测试方式的参数列表中需要有 @pytest.mark.parametrize() 中给出的测试参数
 
-## Parametrizing fixtures
+## 5.2 Parametrizing fixtures
 
 把参数列表放在fixture中
 
@@ -397,7 +385,7 @@ def test_finish_combined(cards_db, combined_start):
     assert card.state == "done"
 ```
 
-## Parametrizing with pytest_generate_tests
+## 5.3 Parametrizing with pytest_generate_tests
 
 ```python
 def pytest_generate_tests(metafunc):
@@ -419,7 +407,7 @@ def test_finish(cards_db, start_summary, start_state):
 
 ```
 
-# Markers
+# 6 Markers
 
 marker 可以看成是对测试方法的一种标记，通过标记告诉 pytest 被标记的测试方法有特殊之处  
 
@@ -427,7 +415,7 @@ marker 可以看成是对测试方法的一种标记，通过标记告诉 pytest
 - 自定义 marker
 - 通过 marker 向 fixture 传递信息
 
-## builtin markers
+## 6.1 builtin markers
 
 builtin markers 会改变测试运行的方式  
 
@@ -440,11 +428,11 @@ builtin markers 会改变测试运行的方式
 | @pytest.mark.parametrize(argnames, argvalues, indirect, ids, scope) | calls a test function multiple times, passing in different arguments in turn |
 | @pytest.mark.usefixtures(fixturename1, fixturename2, ...) | marks tests as needing all the specified fixtures |
 
-## 使用自定义的marker选择测试用例
+## 6.2 使用自定义的marker选择测试用例
 
-- @pytest.mark.<cumstomMarker> 装饰用例
-- pytest -m <cumstomMarker> ......  筛选用例
-- 可以把 <cumstomMarker> 写入 pytest.ini 文件中
+- @pytest.mark.< cumstomMarker > 装饰用例
+- pytest -m < cumstomMarker > ......  筛选用例
+- 可以把 < cumstomMarker > 写入 pytest.ini 文件中
 
 ```ini
 [pytest]
@@ -454,9 +442,9 @@ markers =
     ...
 ```
 
-## 标记文件，类和参数化
+## 6.3 标记文件，类和参数化
 
-### 文件
+### 6.3.1 文件
 
 在文件中对 pytestmark 变量赋值，取值为 marker(s) 的列表
 当 pytest 在 module 中看到 pytestmark 属性时，就会把 marker(s) 应用到 module 中所有的测试用例上
@@ -470,12 +458,12 @@ pytestmark = pytest.mark.finish
 pytestmark = [pytest.mark.marker_one, pytest.mark.marker_two]
 ```
 
-### 标记类
+### 6.3.2 标记类
 
 直接在类名上添加 @pytest.mark.<mark_name>
 会将 marker 应用到类中所有的测试用例
 
-### 标记参数化
+### 6.3.3 标记参数化
 
 ```python
 ​@pytest.mark.parametrize(
@@ -493,7 +481,7 @@ pytestmark = [pytest.mark.marker_one, pytest.mark.marker_two]
     assert​ c.state == ​"done"
 ```
 
-## 严格限定 marker: 使用 pytest 运行参数 addopts =--strict-markers
+## 6.4 严格限定 marker: 使用 pytest 运行参数 addopts =--strict-markers
 
 ```ini
 markers = 
@@ -505,7 +493,7 @@ addopts =
     --strict-markers
 ```
 
-## marker 和 fixture 嵌套
+## 6.5 marker 和 fixture 嵌套
 
 这里一个应用场景就是让自定义的 marker 可以接收参数
 然后被 mark 的测试用例在调用 fixture 可以根据 marker 中的参数进行操作，如在原本空的数据库中插入参数指定数量的条目
@@ -553,7 +541,7 @@ def cards_db(session_cards_db, request, faker):
     return db
 ```
 
-## 查看所有的Makers
+## 6.7 查看所有的Makers
 
 ```cmd
 pytest --markers
