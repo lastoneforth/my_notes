@@ -203,7 +203,7 @@ ls -l my_scr[!a]pt  # ! 排除字符
 | rmdir |  | 默认只删除空目录 |
 | rm |  -ri | 递归删除 |
 
-## 3.4 查看文件内容
+### 3.5 查看文件内容
 
 | 命令 | 参数 | 作用 |
 | :-: | :-: | :-: |
@@ -219,3 +219,92 @@ ls -l my_scr[!a]pt  # ! 排除字符
 | tail | -f | 允许你在其他进程使用该文件时查看文件的内容。tail 命令会保持活动状态，并不断显示添加到文件中的内容, 可以用于实时监测系统日志 |
 | head |  | 查看前几行，默认10行 |
 | head | -n [数字] | 指定查看的行数 |
+
+## chapter 4 更多 bash shell 命令
+
+进程，磁盘，数据的排序和归档
+
+### 4.1 监测
+
+#### 4.1.1 监测进程
+
+ps
+top
+
+#### 4.1.2 结束进程
+
+在Linux中，进程之间通过信号 来通信。进程的信号就是预定义好的一个消息，进程能识别它并决定忽略还是作出反应。进程如何处理信号是由开发人员通过编程来决定的。
+
+![alt text](image-6.png)
+
+| 命令 | 参数 | 作用 |
+| :-: | :-: | :-: |
+| kill | | 只支持通过PID给进程发信号，默认发送一个 TERM 信号 |
+| kill | -s [信号名称]| 发送指定的信号 eg: kill -s HUP 3940 |
+| killall | | 通过进程名而不是PID来结束进程。killall 命令也支持通配符, eg: killall http* |
+
+### 4.2 监测磁盘
+
+| 命令 | 参数 | 作用 |
+| :-: | :-: | :-: |
+| mount | | 默认情况下，mount 命令会输出当前系统上挂载的设备列表 |
+| mount | -t [type] [device] [directory] | 手动挂载媒体文件，type指定磁盘被格式化的文件系统类型,eg :mount -t vfat /dev/sdb1 /media/disk|
+| umount| | 卸载设备, umount [directory \| device ] |
+| df | | 每个有数据的已挂载文件系统 |
+| df | -h | 把输出中磁盘空间按照用户易读的形式显示 |
+| du |  | 显示某个特定目录（默认情况下是当前目录）的磁盘使用情况，可以用来快速判断目录下是不是有超大文件 |
+| du | -c |  显示所有已列出文件总的大小，会在 du 输出最后另加一行 |
+| du | -h |  按用户易读的格式输出大小，即用K替代千字节，用M替代兆字节，用G替代吉字节 |
+| du | -s |  显示每个输出参数的总计，只输出一个占用量结果，相当于 du -c 的最后一行的值 |
+
+### 4.3 处理数据文件
+
+排序，查找，压缩，归档
+
+| 命令 | 参数 | 作用 |
+| :-: | :-: | :-: |
+| sort | | 默认按字符排序，数字会被当成字符排序 |
+| sort | -n | 数字可以被识别，按照值排序 |
+| sort | -M | 按照月份排序， 按 Jan, Feb, Mar ... |
+| sort | -r | 反向排序 |
+| sort | -k | 指定用于排序的位置，-k 后需要给出一个数字指定位置 |
+| sort | -t | 指定一个用来区分键位置的字符，按照 -t 后的字符，进行划分 |
+| grep |  | 查找数据， grep [options] pattern [file]， 输出包含了匹配模式的行 |
+| grep | -v | 反向查找，输出不包含匹配模式的行 |
+| grep | -n | 显示匹配模式的行所在的行号 |
+| grep | -c | 总共有多少行包含了匹配模式 |
+| grep | -e | 指定多个匹配模式 eg: grep -e pattern1 -e pattern2 file1 |
+| gzip | | 压缩文件后缀为 .gz eg: gzip myprog, 会产生一个 myprog.gz 的压缩文件，压缩还有 bzip2, compress, zip 等其他工具 |
+| tar | | tar 命令格式， tar function [options] object1 object2 ... |
+| tar | -c [dir] | 切换到指定目录 |
+| tar | -f [file] | 输出结果到文件或设备 file |
+| tar | -z | 将输出重定向给 gzip 命令来压缩内容 |
+| tar | -v | 在处理文件时显示文件 |
+
+![alt text](image-7.png)
+
+使用 sort 的 -t 参数可以把数据切分成多段，然后用 -k 指定使用其中的一段进行排序
+eg: 对 /etc/passwd文件，根据用户ID进行排序
+
+```bash
+$ sort -t ':' -k 3 -n /etc/passwd
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+```
+
+#### 4.3.1 tar的基本使用
+
+```bash
+
+tar -cvf test.tar test/ test2/  # 创建 test.tar 文件，含有 test 和 test2 目录内容
+tar -tf test.tar  # 列出 test.tar 的内容，但并不提取文件
+tar -xvf test.tar # 提取文件
+
+tar -zxvf filename.tgz # .tgz是 gzip压缩过的tar 文件，可以用这命令解压
+```
